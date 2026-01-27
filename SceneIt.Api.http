@@ -1,0 +1,6 @@
+@SceneIt.Api_HostAddress = http://localhost:5078
+
+GET {{SceneIt.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
