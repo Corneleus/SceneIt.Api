@@ -14,35 +14,67 @@ namespace SceneIt.Api.Services
       _context = context;
     }
 
-    public IEnumerable<Movie> GetAll()
+    public async Task<IReadOnlyList<Movie>> GetAllAsync()
     {
-      return _context.Movies.ToList();
+      return await _context.Movies
+        .Where(m => !m.IsDeleted)
+        .ToListAsync();
     }
 
-    public Movie? GetById(int id)
+    public async Task<Movie?> GetByIdAsync(int id)
     {
-      return _context.Movies.FirstOrDefault(m => m.MovieId == id);
-    }
-
-    public void Add(Movie movie)
-    {
-      if (!_context.Movies.Any(m => m.ImdbId == movie.ImdbId))
-      {
-        _context.Movies.Add(movie);
-        _context.SaveChanges();
-      }
+      return await _context.Movies
+        .FirstOrDefaultAsync(m => m.MovieId == id && !m.IsDeleted);
     }
 
     public async Task<Movie> AddAsync(Movie movie)
     {
-        // Example (adjust to your DB logic)
-        _context.Movies.Add(movie);
-        await _context.SaveChangesAsync();
-        return movie;
+      var existingMovie = await _context.Movies
+        .FirstOrDefaultAsync(m => m.ImdbId == movie.ImdbId);
+
+      if (existingMovie is not null)
+      {
+        return existingMovie;
+      }
+
+      _context.Movies.Add(movie);
+      await _context.SaveChangesAsync();
+
+      return movie;
     }
 
-  }
+    public async Task<bool> SoftDeleteAsync(int id)
+    {
+      var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MovieId == id);
 
+      if (movie is null || movie.IsDeleted)
+      {
+        return false;
+      }
+
+      movie.IsDeleted = true;
+      movie.DeletedAtUtc = DateTime.UtcNow;
+
+      await _context.SaveChangesAsync();
+
+      return true;
+    }
+
+    public async Task<bool> HardDeleteAsync(int id)
+    {
+      var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MovieId == id);
+
+      if (movie is null)
+      {
+        return false;
+      }
+
+      _context.Movies.Remove(movie);
+      await _context.SaveChangesAsync();
+
+      return true;
+    }
+  }
 }
 
 

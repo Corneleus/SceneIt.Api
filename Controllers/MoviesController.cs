@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SceneIt.Api.Data;
 using SceneIt.Api.Interfaces;
 using Microsoft.AspNetCore.Http;
+using SceneIt.Api.Models;
 
 namespace SceneIt.Api.Controllers
 {
@@ -10,13 +9,10 @@ namespace SceneIt.Api.Controllers
     [Route("api/[controller]")]
     public class MoviesController : ControllerBase
     {
-        private readonly SceneItDbContext _context;
-
         private readonly IMovieService movieService;
 
-        public MoviesController(SceneItDbContext context, IMovieService movieService)
+        public MoviesController(IMovieService movieService)
         {
-            _context = context;
             this.movieService = movieService;
         }
 
@@ -24,16 +20,16 @@ namespace SceneIt.Api.Controllers
         [Route("")]
         public async Task<IActionResult> GetMovies()
         {
-            var movies = await _context.Movies.ToListAsync();
+            var movies = await movieService.GetAllAsync();
             return Ok(movies);
         }
 
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(Movie), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Movie> GetById(int id)
+        public async Task<ActionResult<Movie>> GetById(int id)
         {
-            var movie = movieService.GetById(id);
+            var movie = await movieService.GetByIdAsync(id);
 
             if (movie == null)
                 return NotFound();
@@ -53,18 +49,31 @@ namespace SceneIt.Api.Controllers
             );
         }
 
+        [HttpPatch("{id:int}/soft-delete")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SoftDelete(int id)
+        {
+            var deleted = await movieService.SoftDeleteAsync(id);
 
+            if (!deleted)
+                return NotFound();
 
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> HardDelete(int id)
+        {
+            var deleted = await movieService.HardDeleteAsync(id);
+
+            if (!deleted)
+                return NotFound();
+
+            return NoContent();
+        }
     }
-
-
-        
 }
-
-
-
-
-
-
-
 

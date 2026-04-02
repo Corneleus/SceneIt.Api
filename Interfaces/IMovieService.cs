@@ -5,9 +5,10 @@ namespace SceneIt.Api.Interfaces
 {
   public interface IMovieService
   {
-    IEnumerable<Movie> GetAll();
-    Movie? GetById(int id);
+    Task<IReadOnlyList<Movie>> GetAllAsync();
+    Task<Movie?> GetByIdAsync(int id);
     Task<Movie> AddAsync(Movie movie);
-
-    }
+    Task<bool> SoftDeleteAsync(int id);
+    Task<bool> HardDeleteAsync(int id);
+  }
 }

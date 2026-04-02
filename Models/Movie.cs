@@ -27,6 +27,8 @@ public class Movie
   public string? Dvd { get; set; }
   public string? BoxOffice { get; set; }
   public string? Production { get; set; }
+  public bool IsDeleted { get; set; }
+  public DateTime? DeletedAtUtc { get; set; }
 
   public ICollection<UserMovie> UserMovies { get; set; } = new List<UserMovie>();
 }
