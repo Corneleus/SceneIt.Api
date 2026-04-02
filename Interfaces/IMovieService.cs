@@ -7,5 +7,7 @@ namespace SceneIt.Api.Interfaces
   {
     IEnumerable<Movie> GetAll();
     Movie? GetById(int id);
-  }
+    Task<Movie> AddAsync(Movie movie);
+
+    }
 }

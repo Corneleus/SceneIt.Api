@@ -32,5 +32,19 @@ namespace SceneIt.Api.Services
         _context.SaveChanges();
       }
     }
+
+    public async Task<Movie> AddAsync(Movie movie)
+    {
+        // Example (adjust to your DB logic)
+        _context.Movies.Add(movie);
+        await _context.SaveChangesAsync();
+        return movie;
+    }
+
   }
+
 }
+
+
+
+
