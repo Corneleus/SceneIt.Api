@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using SceneIt.Api.Interfaces;
 using Microsoft.AspNetCore.Http;
-using SceneIt.Api.Models;
+using Microsoft.AspNetCore.Mvc;
+using SceneIt.Api.Dtos;
+using SceneIt.Api.Interfaces;
 
 namespace SceneIt.Api.Controllers
 {
@@ -18,6 +18,7 @@ namespace SceneIt.Api.Controllers
 
         [HttpGet]
         [Route("")]
+        [ProducesResponseType(typeof(IReadOnlyList<MovieResponseDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMovies()
         {
             var movies = await movieService.GetAllAsync();
@@ -25,27 +26,51 @@ namespace SceneIt.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(Movie), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MovieResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Movie>> GetById(int id)
+        public async Task<ActionResult<MovieResponseDto>> GetById(int id)
         {
             var movie = await movieService.GetByIdAsync(id);
 
-            if (movie == null)
+            if (movie is null)
+            {
                 return NotFound();
+            }
 
             return Ok(movie);
         }
 
         [HttpPost("add")]
-        public async Task<ActionResult<Movie>> Add([FromBody] Movie movie)
+        [ProducesResponseType(typeof(MovieResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<MovieResponseDto>> Add([FromBody] CreateMovieRequestDto movie)
         {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
             var createdMovie = await movieService.AddAsync(movie);
+
+            if (!createdMovie.Created)
+            {
+                var problem = new ProblemDetails
+                {
+                    Title = "Movie already exists.",
+                    Detail = $"A movie with IMDb ID '{createdMovie.Movie.ImdbId}' already exists.",
+                    Status = StatusCodes.Status409Conflict
+                };
+
+                problem.Extensions["movieId"] = createdMovie.Movie.MovieId;
+                problem.Extensions["imdbId"] = createdMovie.Movie.ImdbId;
+
+                return Conflict(problem);
+            }
 
             return CreatedAtAction(
                 nameof(GetById),
-                new { id = createdMovie.MovieId },
-                createdMovie
+                new { id = createdMovie.Movie.MovieId },
+                createdMovie.Movie
             );
         }
 
@@ -57,7 +82,9 @@ namespace SceneIt.Api.Controllers
             var deleted = await movieService.SoftDeleteAsync(id);
 
             if (!deleted)
+            {
                 return NotFound();
+            }
 
             return NoContent();
         }
@@ -70,10 +97,11 @@ namespace SceneIt.Api.Controllers
             var deleted = await movieService.HardDeleteAsync(id);
 
             if (!deleted)
+            {
                 return NotFound();
+            }
 
             return NoContent();
         }
     }
 }
-

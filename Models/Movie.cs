@@ -1,34 +1,82 @@
-using SceneIt.Api.Models;
 using System.ComponentModel.DataAnnotations;
 
-public class Movie
+namespace SceneIt.Api.Models
 {
-  [Key]
-  public int MovieId {  get; set; } // primary key
+  public class Movie
+  {
+    [Key]
+    public int MovieId { get; set; }
 
-  public required string Title { get; set; }
-  public string? Year { get; set; }
-  public string? Rated { get; set; }
-  public DateTime? Released { get; set; }
-  public string? Runtime { get; set; }
-  public string? Genre { get; set; }
-  public string? Director { get; set; }
-  public string? Writer { get; set; }
-  public string? Actors { get; set; }
-  public string? Plot { get; set; }
-  public string? Language { get; set; }
-  public string? Country { get; set; }
-  public string? Awards { get; set; }
-  public string? Poster { get; set; }
-  public string? Metascore { get; set; }
-  public string? ImdbRating { get; set; }
-  public string ImdbId { get; set; } = string.Empty;
-  public string? Type { get; set; }
-  public string? Dvd { get; set; }
-  public string? BoxOffice { get; set; }
-  public string? Production { get; set; }
-  public bool IsDeleted { get; set; }
-  public DateTime? DeletedAtUtc { get; set; }
+    [Required]
+    [MaxLength(255)]
+    public required string Title { get; set; }
 
-  public ICollection<UserMovie> UserMovies { get; set; } = new List<UserMovie>();
+    [MaxLength(20)]
+    public string? Year { get; set; }
+
+    [MaxLength(255)]
+    public string? Rated { get; set; }
+
+    public DateTime? Released { get; set; }
+
+    [MaxLength(255)]
+    public string? Runtime { get; set; }
+
+    [MaxLength(255)]
+    public string? Genre { get; set; }
+
+    [MaxLength(255)]
+    public string? Director { get; set; }
+
+    [MaxLength(500)]
+    public string? Writer { get; set; }
+
+    [MaxLength(500)]
+    public string? Actors { get; set; }
+
+    [MaxLength(1000)]
+    public string? Plot { get; set; }
+
+    [MaxLength(500)]
+    public string? Language { get; set; }
+
+    [MaxLength(100)]
+    public string? Country { get; set; }
+
+    [MaxLength(255)]
+    public string? Awards { get; set; }
+
+    [MaxLength(1000)]
+    public string? Poster { get; set; }
+
+    [MaxLength(20)]
+    public string? Metascore { get; set; }
+
+    [MaxLength(20)]
+    public string? ImdbRating { get; set; }
+
+    [MaxLength(50)]
+    public string? ImdbVotes { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string ImdbId { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string? Type { get; set; }
+
+    [MaxLength(255)]
+    public string? Dvd { get; set; }
+
+    [MaxLength(255)]
+    public string? BoxOffice { get; set; }
+
+    [MaxLength(255)]
+    public string? Production { get; set; }
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
+
+    public ICollection<UserMovie> UserMovies { get; set; } = new List<UserMovie>();
+  }
 }

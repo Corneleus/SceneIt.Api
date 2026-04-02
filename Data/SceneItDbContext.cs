@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using SceneIt.Api.Models;
-using System.Collections.Generic;
 
 namespace SceneIt.Api.Data
 {
@@ -14,5 +13,22 @@ namespace SceneIt.Api.Data
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserMovie> UserMovies => Set<UserMovie>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+      base.OnModelCreating(modelBuilder);
+
+      modelBuilder.Entity<Movie>()
+        .HasIndex(movie => movie.ImdbId)
+        .IsUnique();
+
+      modelBuilder.Entity<Movie>()
+        .Property(movie => movie.IsDeleted)
+        .HasDefaultValue(false);
+
+      modelBuilder.Entity<Movie>()
+        .Property(movie => movie.Released)
+        .HasColumnType("date");
+    }
   }
 }

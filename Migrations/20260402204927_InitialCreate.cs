@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SceneIt.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMovieSoftDelete : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,28 +17,29 @@ namespace SceneIt.Api.Migrations
                 {
                     MovieId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Year = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Rated = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Released = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Runtime = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Genre = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Director = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Writer = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Actors = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Plot = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Language = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Awards = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Poster = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Metascore = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImdbRating = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImdbId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Dvd = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BoxOffice = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Production = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Year = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Rated = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Released = table.Column<DateTime>(type: "date", nullable: true),
+                    Runtime = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Genre = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Director = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Writer = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Actors = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Plot = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    Language = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Country = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Awards = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Poster = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    Metascore = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    ImdbRating = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    ImdbVotes = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    ImdbId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Dvd = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    BoxOffice = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Production = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     DeletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -52,7 +53,7 @@ namespace SceneIt.Api.Migrations
                 {
                     UserId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -70,7 +71,7 @@ namespace SceneIt.Api.Migrations
                     Owned = table.Column<bool>(type: "bit", nullable: false),
                     HasSeen = table.Column<bool>(type: "bit", nullable: false),
                     Recommend = table.Column<bool>(type: "bit", nullable: true),
-                    RecommendNotes = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    RecommendNotes = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -88,6 +89,12 @@ namespace SceneIt.Api.Migrations
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Movies_ImdbId",
+                table: "Movies",
+                column: "ImdbId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserMovies_MovieId",

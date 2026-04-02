@@ -1,7 +1,7 @@
-using SceneIt.Api.Data;
-using SceneIt.Api.Models;
-using SceneIt.Api.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using SceneIt.Api.Data;
+using SceneIt.Api.Dtos;
+using SceneIt.Api.Interfaces;
 
 namespace SceneIt.Api.Services
 {
@@ -14,33 +14,48 @@ namespace SceneIt.Api.Services
       _context = context;
     }
 
-    public async Task<IReadOnlyList<Movie>> GetAllAsync()
+    public async Task<IReadOnlyList<MovieResponseDto>> GetAllAsync()
     {
-      return await _context.Movies
+      var movies = await _context.Movies
         .Where(m => !m.IsDeleted)
         .ToListAsync();
+
+      return movies.Select(m => m.ToResponseDto()).ToList();
     }
 
-    public async Task<Movie?> GetByIdAsync(int id)
+    public async Task<MovieResponseDto?> GetByIdAsync(int id)
     {
-      return await _context.Movies
+      var movie = await _context.Movies
         .FirstOrDefaultAsync(m => m.MovieId == id && !m.IsDeleted);
+
+      return movie?.ToResponseDto();
     }
 
-    public async Task<Movie> AddAsync(Movie movie)
+    public async Task<CreateMovieResult> AddAsync(CreateMovieRequestDto movie)
     {
+      var trimmedImdbId = movie.ImdbId.Trim();
       var existingMovie = await _context.Movies
-        .FirstOrDefaultAsync(m => m.ImdbId == movie.ImdbId);
+        .FirstOrDefaultAsync(m => m.ImdbId == trimmedImdbId && !m.IsDeleted);
 
       if (existingMovie is not null)
       {
-        return existingMovie;
+        return new CreateMovieResult
+        {
+          Movie = existingMovie.ToResponseDto(),
+          Created = false
+        };
       }
 
-      _context.Movies.Add(movie);
+      var entity = movie.ToEntity();
+
+      _context.Movies.Add(entity);
       await _context.SaveChangesAsync();
 
-      return movie;
+      return new CreateMovieResult
+      {
+        Movie = entity.ToResponseDto(),
+        Created = true
+      };
     }
 
     public async Task<bool> SoftDeleteAsync(int id)
@@ -76,7 +91,3 @@ namespace SceneIt.Api.Services
     }
   }
 }
-
-
-
-

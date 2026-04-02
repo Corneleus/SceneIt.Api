@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using SceneIt.Api.Models;
+using SceneIt.Api.Dtos;
 
 namespace SceneIt.Api.Interfaces
 {
   public interface IMovieService
   {
-    Task<IReadOnlyList<Movie>> GetAllAsync();
-    Task<Movie?> GetByIdAsync(int id);
-    Task<Movie> AddAsync(Movie movie);
+    Task<IReadOnlyList<MovieResponseDto>> GetAllAsync();
+    Task<MovieResponseDto?> GetByIdAsync(int id);
+    Task<CreateMovieResult> AddAsync(CreateMovieRequestDto movie);
     Task<bool> SoftDeleteAsync(int id);
     Task<bool> HardDeleteAsync(int id);
   }
