@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>SceneIt.Api-1dc1f92d-6b84-4ea5-96f8-6fd53d31e739</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

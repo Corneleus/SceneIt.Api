@@ -5,15 +5,14 @@ using SceneIt.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the DI container
-builder.Services.AddControllers();                      // Required for MapControllers()
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure EF Core DbContext with SQL Server
 builder.Services.AddDbContext<SceneItDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 
 builder.Services.AddCors(options =>
 {
@@ -27,12 +26,21 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Register your services
+builder.Services.Configure<ImportAutomationOptions>(builder.Configuration.GetSection("Imports:Automation"));
+builder.Services.Configure<OmdbOptions>(builder.Configuration.GetSection("Omdb"));
+
+builder.Services.AddHttpClient<IOmdbImportClient, OmdbImportClient>(client =>
+{
+    var baseUrl = builder.Configuration["Omdb:BaseUrl"] ?? "https://www.omdbapi.com/";
+    client.BaseAddress = new Uri(baseUrl);
+});
+
 builder.Services.AddScoped<IMovieService, MovieService>();
+builder.Services.AddScoped<IMovieImportService, MovieImportService>();
+builder.Services.AddHostedService<ImportAutomationService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
   app.UseSwagger();
@@ -41,10 +49,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
-
 app.UseAuthorization();
-
-// Map controller endpoints
 app.MapControllers();
 
 app.Run();

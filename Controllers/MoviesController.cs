@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SceneIt.Api.Dtos;
 using SceneIt.Api.Interfaces;
+using SceneIt.Api.Services;
 
 namespace SceneIt.Api.Controllers
 {
@@ -10,10 +11,12 @@ namespace SceneIt.Api.Controllers
     public class MoviesController : ControllerBase
     {
         private readonly IMovieService movieService;
+        private readonly IOmdbImportClient omdbImportClient;
 
-        public MoviesController(IMovieService movieService)
+        public MoviesController(IMovieService movieService, IOmdbImportClient omdbImportClient)
         {
             this.movieService = movieService;
+            this.omdbImportClient = omdbImportClient;
         }
 
         [HttpGet]
@@ -38,6 +41,49 @@ namespace SceneIt.Api.Controllers
             }
 
             return Ok(movie);
+        }
+
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(IReadOnlyList<MovieResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IReadOnlyList<MovieResponseDto>>> Search([FromQuery] string query, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest("A search query is required.");
+            }
+
+            try
+            {
+                var results = await omdbImportClient.SearchMoviesAsync(query, cancellationToken);
+                return Ok(results);
+            }
+            catch (OmdbException ex)
+            {
+                return Problem(title: "OMDb search failed.", detail: ex.Message, statusCode: ex.StatusCode);
+            }
+        }
+
+        [HttpGet("lookup/{imdbId}")]
+        [ProducesResponseType(typeof(MovieResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<MovieResponseDto>> Lookup(string imdbId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var movie = await omdbImportClient.GetMovieByImdbIdAsync(imdbId, cancellationToken);
+
+                if (movie is null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(movie.ToResponseDto());
+            }
+            catch (OmdbException ex)
+            {
+                return Problem(title: "OMDb lookup failed.", detail: ex.Message, statusCode: ex.StatusCode);
+            }
         }
 
         [HttpPost("add")]

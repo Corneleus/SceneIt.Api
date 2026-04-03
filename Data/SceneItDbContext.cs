@@ -13,6 +13,8 @@ namespace SceneIt.Api.Data
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserMovie> UserMovies => Set<UserMovie>();
+    public DbSet<ImportQueue> ImportQueueItems => Set<ImportQueue>();
+    public DbSet<ImportRun> ImportRuns => Set<ImportRun>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +31,15 @@ namespace SceneIt.Api.Data
       modelBuilder.Entity<Movie>()
         .Property(movie => movie.Released)
         .HasColumnType("date");
+
+      modelBuilder.Entity<ImportQueue>()
+        .HasIndex(queueItem => queueItem.ImdbId)
+        .IsUnique();
+
+      modelBuilder.Entity<ImportQueue>()
+        .Property(queueItem => queueItem.Status)
+        .HasConversion<string>()
+        .HasMaxLength(20);
     }
   }
 }

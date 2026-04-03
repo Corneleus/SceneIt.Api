@@ -35,10 +35,25 @@ namespace SceneIt.Api.Services
     {
       var trimmedImdbId = movie.ImdbId.Trim();
       var existingMovie = await _context.Movies
-        .FirstOrDefaultAsync(m => m.ImdbId == trimmedImdbId && !m.IsDeleted);
+        .FirstOrDefaultAsync(m => m.ImdbId == trimmedImdbId);
 
       if (existingMovie is not null)
       {
+        if (existingMovie.IsDeleted)
+        {
+          movie.ApplyToEntity(existingMovie);
+          existingMovie.IsDeleted = false;
+          existingMovie.DeletedAtUtc = null;
+
+          await _context.SaveChangesAsync();
+
+          return new CreateMovieResult
+          {
+            Movie = existingMovie.ToResponseDto(),
+            Created = true
+          };
+        }
+
         return new CreateMovieResult
         {
           Movie = existingMovie.ToResponseDto(),
