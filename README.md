@@ -1,88 +1,101 @@
 # SceneIt API
 
-ASP.NET Core backend for SceneIt. The API owns the movie library, EF Core data model, import queue, import runs, and OMDb-backed import/search integration.
+ASP.NET Core backend for SceneIt. The API owns the movie library, OMDb proxy integration, import queue state, and import run history.
 
 ## Current Functionality
 
-- Movie library CRUD surface for the frontend.
-- DTO-based movie API responses and requests.
-- Duplicate movie adds return `409 Conflict`.
-- Soft delete and hard delete endpoints.
-- Re-adding a soft-deleted movie restores the existing row instead of failing on the unique IMDb constraint.
-- Manual import queue endpoints for queue inspection and batch execution.
-- Hosted background scheduler for automated import runs while the API is running.
-- OMDb-backed search and lookup endpoints used by the frontend add-movie flow.
-- EF Core migrations as the source of truth for schema.
+### Movie library
 
-## Project State Checkpoint
+- `GET /api/Movies` returns only non-deleted movies.
+- `GET /api/Movies/{id}` returns a single non-deleted movie or `404`.
+- `POST /api/Movies/add` creates a movie from a DTO payload.
+- Duplicate adds return `409 Conflict`.
+- Re-adding a soft-deleted movie restores the existing row instead of creating a second record.
+- `PATCH /api/Movies/{id}/soft-delete` marks a movie deleted and removes it from normal reads.
+- `DELETE /api/Movies/{id}` permanently removes the row.
 
-- Backend repo: `/mnt/c/Users/Corne/source/repos/scene-it-backend/SceneIt.Api`
-- EF Core migrations are the schema source of truth.
-- Current migrations in the repo:
-  - `20260402204927_InitialCreate`
-  - `20260403034109_AddImportQueue`
-- Current schema represented by those migrations includes:
-  - `Movies`
-  - `Users`
-  - `UserMovies`
-  - `ImportQueueItems`
-  - `ImportRuns`
-  - `__EFMigrationsHistory`
-- Backend features currently in place:
-  - movie DTO-based API
-  - duplicate add returns `409 Conflict`
-  - soft delete and hard delete endpoints
-  - manual import endpoints:
-    - `POST /api/imports/queue`
-    - `GET /api/imports/queue`
-    - `POST /api/imports/run`
-    - `GET /api/imports/runs`
-  - hosted scheduler for automated imports
-  - frontend-safe OMDb proxy endpoints:
-    - `GET /api/Movies/search?query=...`
-    - `GET /api/Movies/lookup/{imdbId}`
-- Scheduler defaults in `appsettings.json`:
-  - `Enabled = true`
-  - `RunOnStartup = true`
-  - `IntervalMinutes = 1440`
-  - `MaxImportsPerDay = 100`
-  - `MaxCountPerRun = 100`
-- Important note:
-  - automatic imports only happen while the backend is running
-  - if imports must continue while the backend is offline, switch to external scheduling later
-- Current verification status:
-  - `dotnet build -c Release` passes
-  - `dotnet test -c Release` passes with 16 tests
-- Files of interest:
-  - `Controllers/ImportsController.cs`
-  - `Services/MovieImportService.cs`
-  - `Services/ImportAutomationService.cs`
-- Likely next discussions:
-  - keep hosted scheduler vs move to external scheduling
-  - admin UI for import queue and import runs
-  - stronger import failure reporting and retry strategy
+### OMDb integration
+
+- `GET /api/Movies/search?query=...` proxies OMDb title search for the frontend.
+- `GET /api/Movies/lookup/{imdbId}` proxies OMDb lookup by IMDb ID.
+- OMDb responses are normalized before returning or importing:
+  - `N/A` values are converted to `null`
+  - release dates are parsed into `DateTime?` when possible
+- OMDb failures are surfaced as problem responses with an HTTP status code.
+
+### Import queue
+
+- `POST /api/Imports/queue` accepts `{ items: [{ imdbId, title? }] }`.
+- Queue submissions trim input values and ignore blank IMDb IDs.
+- Duplicate IMDb IDs inside the same request are collapsed before persistence.
+- IMDb IDs already present in the import queue are skipped.
+- New queue items are enriched from OMDb at queue time when lookup succeeds.
+- `GET /api/Imports/queue` returns the queue ordered with `Pending` items first.
+
+### Import runs
+
+- `POST /api/Imports/run` accepts `{ maxCount }`.
+- Manual runs only process `Pending` queue items.
+- Manual runs are capped at 100 items per batch even if a larger number is requested.
+- Each run is recorded before item processing starts.
+- Each queue item is processed with per-item error isolation.
+- Queue items track attempts, last-attempt time, imported time, and the latest error message.
+- `GET /api/Imports/runs` returns run history ordered newest first.
+
+### Import automation
+
+- `ImportAutomationService` and `Imports:Automation` settings exist in the codebase.
+- The hosted automation runner is not currently registered in `Program.cs`, so scheduled background imports are disabled at runtime right now.
+- The current frontend automation form is therefore session-only UI state and does not persist through this API.
 
 ## Tech Stack
 
 - .NET 8
 - ASP.NET Core Web API
-- Entity Framework Core with SQL Server / LocalDB
+- Entity Framework Core
+- SQL Server / LocalDB
 - Swagger in development
-- xUnit tests
+- xUnit
 
 ## Project Structure
 
-- `Controllers/MoviesController.cs`: movie CRUD plus OMDb proxy endpoints
-- `Controllers/ImportsController.cs`: import queue and run endpoints
-- `Services/MovieService.cs`: movie library rules, duplicate handling, soft delete restore behavior
-- `Services/MovieImportService.cs`: queue processing and import run persistence
-- `Services/ImportAutomationService.cs`: hosted scheduled import runner
-- `Data/SceneItDbContext.cs`: EF Core model
+- `Program.cs`: DI registration, CORS, Swagger, and app startup
+- `Controllers/MoviesController.cs`: movie CRUD plus OMDb search and lookup
+- `Controllers/ImportsController.cs`: queue submission, queue reads, manual runs, and run history
+- `Services/MovieService.cs`: movie-library rules including duplicate and restore-on-add behavior
+- `Services/MovieImportService.cs`: queue persistence, run execution, and queue-item status updates
+- `Services/ImportAutomationService.cs`: background automation implementation currently not wired into startup
+- `Services/OmdbImportClient.cs`: OMDb HTTP client and response normalization
+- `Data/SceneItDbContext.cs`: EF Core model and entity configuration
 - `Migrations/`: schema history
 
-## Local Setup
+## Schema Notes
 
-### 1. Configure the database
+Current entity sets:
+
+- `Movies`
+- `Users`
+- `UserMovies`
+- `ImportQueueItems`
+- `ImportRuns`
+
+Current migrations in the repo:
+
+- `20260402204927_InitialCreate`
+- `20260403034109_AddImportQueue`
+- `20260404065811_AddImportQueueMetadata`
+- `20260404120000_ImportQueueDetails`
+
+Important model constraints:
+
+- `Movies.ImdbId` is unique.
+- `ImportQueueItems.ImdbId` is unique.
+- `Movies.Released` is stored as SQL `date`.
+- `ImportQueueItems.Status` is stored as a string conversion of the enum.
+
+## Configuration
+
+### Database
 
 The default connection string targets LocalDB:
 
@@ -96,34 +109,52 @@ Apply migrations:
 dotnet ef database update
 ```
 
-### 2. Configure OMDb with user-secrets
+### OMDb
 
-The OMDb API key is no longer stored in source control. For local development, use .NET user-secrets.
+The API reads OMDb settings from configuration under `Omdb`:
 
-From this project directory:
+```json
+"Omdb": {
+  "BaseUrl": "https://www.omdbapi.com/"
+}
+```
+
+The API key should not be committed to `appsettings.json`.
+
+For local development, `Program.cs` also enables `.NET` user-secrets:
 
 ```bash
 dotnet user-secrets set "Omdb:ApiKey" "YOUR_OMDB_KEY"
 ```
 
-Optional verification:
+For deployed environments, provide the key through secret storage or an environment variable such as `Omdb__ApiKey`.
+
+### CORS
+
+The development CORS policy currently allows:
+
+- `http://localhost:4200`
+
+## Running Locally
+
+Restore and build:
 
 ```bash
-dotnet user-secrets list
+dotnet build -c Release
 ```
 
-### 3. Run the API
+Run the API:
 
 ```bash
 dotnet run
 ```
 
-Development launch URLs:
+Development launch profiles expose:
 
 - `https://localhost:44383`
 - `http://localhost:5078`
 
-Swagger is enabled in development at `/swagger`.
+Swagger is enabled in Development at `/swagger`.
 
 ## API Surface
 
@@ -139,42 +170,12 @@ Swagger is enabled in development at `/swagger`.
 
 ### Imports
 
-- `POST /api/imports/queue`
-- `GET /api/imports/queue`
-- `POST /api/imports/run`
-- `GET /api/imports/runs`
+- `POST /api/Imports/queue`
+- `GET /api/Imports/queue`
+- `POST /api/Imports/run`
+- `GET /api/Imports/runs`
 
-## Import Automation
-
-Import automation is configured in `appsettings.json` under `Imports:Automation`.
-
-Current defaults:
-
-- `Enabled = true`
-- `RunOnStartup = true`
-- `IntervalMinutes = 1440`
-- `MaxImportsPerDay = 100`
-- `MaxCountPerRun = 100`
-
-Important behavior:
-
-- Automated imports only run while the backend process is up.
-- The hosted service is appropriate for local/dev or simple always-on hosting.
-- If imports must continue while the API is offline, use an external scheduler later.
-
-## Reliability Notes
-
-- Import runs are created and persisted before batch work begins.
-- Each queue item is handled with per-item error isolation so one failed import does not discard the entire run.
-- Import failures are recorded on the queue item with run counts updated as processing continues.
-
-## Build and Test
-
-Build:
-
-```bash
-dotnet build -c Release
-```
+## Testing
 
 Run tests:
 
@@ -182,15 +183,17 @@ Run tests:
 dotnet test -c Release
 ```
 
-Current backend test coverage includes:
+The committed backend tests currently cover 18 test cases across:
 
-- duplicate add handling
-- restore-on-add for soft-deleted movies
-- soft delete and hard delete behavior
-- import queue duplicate skipping
-- import run success, duplicate, and failure states
-- import run persistence when add/import work throws
+- create, duplicate, restore, soft-delete, and hard-delete movie service behavior
+- queue deduplication and duplicate skipping
+- successful import, duplicate import, OMDb null lookup failure, and add failure handling
+- run-limit capping at 100 items
+- imports controller queue and run responses
+- movies controller conflict, delete, search-failure, and lookup-failure responses
 
-## Notes for the Frontend
+## Notes For The Frontend
 
-The Angular app at `http://localhost:4200` is allowed by CORS in development and is expected to call this API at `https://localhost:44383/api`.
+- The Angular UI expects to call this API at `https://localhost:44383/api` in development.
+- Swagger and the API can run at the same time as the Angular dev server.
+- The current API does not expose endpoints for saving automation settings; only queueing, running, and reading import state are supported.

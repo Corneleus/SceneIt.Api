@@ -37,6 +37,48 @@ namespace SceneIt.Api.Controllers
       return Ok(items);
     }
 
+    [HttpPost("dataset/preview")]
+    [ProducesResponseType(typeof(DatasetImportPreviewResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<DatasetImportPreviewResultDto>> PreviewDataset([FromBody] DatasetImportPreviewRequestDto request, CancellationToken cancellationToken)
+    {
+      if (!ModelState.IsValid)
+      {
+        return ValidationProblem(ModelState);
+      }
+
+      try
+      {
+        var result = await _movieImportService.PreviewDatasetAsync(request, cancellationToken);
+        return Ok(result);
+      }
+      catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or InvalidDataException)
+      {
+        return BadRequest(ex.Message);
+      }
+    }
+
+    [HttpPost("dataset/queue")]
+    [ProducesResponseType(typeof(QueueDatasetImportsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<QueueDatasetImportsResultDto>> QueueDataset([FromBody] QueueDatasetImportsRequestDto request, CancellationToken cancellationToken)
+    {
+      if (!ModelState.IsValid)
+      {
+        return ValidationProblem(ModelState);
+      }
+
+      try
+      {
+        var result = await _movieImportService.QueueDatasetAsync(request, cancellationToken);
+        return Ok(result);
+      }
+      catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or InvalidDataException)
+      {
+        return BadRequest(ex.Message);
+      }
+    }
+
     [HttpPost("run")]
     [ProducesResponseType(typeof(ImportRunResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ImportRunResultDto>> Run([FromBody] ImportRunRequestDto? request, CancellationToken cancellationToken)
