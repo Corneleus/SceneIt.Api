@@ -60,10 +60,10 @@ ASP.NET Core backend for SceneIt. The API owns the movie library, OMDb proxy int
 ## Project Structure
 
 - `Program.cs`: DI registration, CORS, Swagger, and app startup
-- `Controllers/MoviesController.cs`: movie CRUD plus OMDb search and lookup
+- `Controllers/MediaItemsController.cs`: media-library CRUD plus OMDb search and lookup
 - `Controllers/ImportsController.cs`: queue submission, queue reads, manual runs, and run history
-- `Services/MovieService.cs`: movie-library rules including duplicate and restore-on-add behavior
-- `Services/MovieImportService.cs`: queue persistence, run execution, and queue-item status updates
+- `Services/MediaLibraryService.cs`: media-library rules including duplicate and restore-on-add behavior
+- `Services/MediaImportService.cs`: queue persistence, run execution, and queue-item status updates
 - `Services/ImportAutomationService.cs`: background automation implementation currently not wired into startup
 - `Services/OmdbImportClient.cs`: OMDb HTTP client and response normalization
 - `Data/SceneItDbContext.cs`: EF Core model and entity configuration
@@ -75,7 +75,7 @@ Current entity sets:
 
 - `Movies`
 - `Users`
-- `UserMovies`
+- `UserMediaItems`
 - `ImportQueueItems`
 - `ImportRuns`
 

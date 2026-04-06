@@ -49,7 +49,7 @@ namespace SceneIt.Api.Services
       {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<SceneItDbContext>();
-        var importService = scope.ServiceProvider.GetRequiredService<IMovieImportService>();
+        var importService = scope.ServiceProvider.GetRequiredService<IMediaImportService>();
 
         var todayUtc = DateTime.UtcNow.Date;
         var importedToday = await context.ImportRuns

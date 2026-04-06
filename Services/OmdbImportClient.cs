@@ -18,7 +18,7 @@ namespace SceneIt.Api.Services
       _options = options.Value;
     }
 
-    public async Task<CreateMovieRequestDto?> GetMovieByImdbIdAsync(string imdbId, CancellationToken cancellationToken = default)
+    public async Task<CreateMediaItemRequestDto?> LookupByImdbIdAsync(string imdbId, CancellationToken cancellationToken = default)
     {
       var apiKey = _options.ApiKey;
 
@@ -54,7 +54,7 @@ namespace SceneIt.Api.Services
         return null;
       }
 
-      return new CreateMovieRequestDto
+      return new CreateMediaItemRequestDto
       {
         Title = response.Title.Trim(),
         Year = Normalize(response.Year),
@@ -81,7 +81,7 @@ namespace SceneIt.Api.Services
       };
     }
 
-    public async Task<IReadOnlyList<MovieResponseDto>> SearchMoviesAsync(string query, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MediaItemResponseDto>> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
       var apiKey = _options.ApiKey;
 
@@ -123,9 +123,9 @@ namespace SceneIt.Api.Services
 
       return response.Search
         .Where(item => !string.IsNullOrWhiteSpace(item.Title) && !string.IsNullOrWhiteSpace(item.ImdbId))
-        .Select(item => new MovieResponseDto
+        .Select(item => new MediaItemResponseDto
         {
-          MovieId = 0,
+          MediaItemId = 0,
           Title = item.Title!.Trim(),
           Year = Normalize(item.Year),
           Poster = Normalize(item.Poster),

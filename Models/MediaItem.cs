@@ -2,10 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SceneIt.Api.Models
 {
-  public class Movie
+  public class MediaItem
   {
     [Key]
-    public int MovieId { get; set; }
+    public int MediaItemId { get; set; }
 
     [Required]
     [MaxLength(255)]
@@ -77,6 +77,6 @@ namespace SceneIt.Api.Models
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 
-    public ICollection<UserMovie> UserMovies { get; set; } = new List<UserMovie>();
+    public ICollection<UserMediaItem> UserMediaItems { get; set; } = new List<UserMediaItem>();
   }
 }

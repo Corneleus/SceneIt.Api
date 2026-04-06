@@ -2,11 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SceneIt.Api.Models
 {
-  public class UserMovie
+  public class UserMediaItem
   {
-    public int UserMovieId { get; set; }
+    public int UserMediaItemId { get; set; }
     public int UserId { get; set; }
-    public int MovieId { get; set; }
+    public int MediaItemId { get; set; }
     public bool Owned { get; set; }
     public bool HasSeen { get; set; }
     public bool? Recommend { get; set; }
@@ -15,6 +15,6 @@ namespace SceneIt.Api.Models
     public string? RecommendNotes { get; set; }
 
     public User User { get; set; } = null!;
-    public Movie Movie { get; set; } = null!;
+    public MediaItem MediaItem { get; set; } = null!;
   }
 }

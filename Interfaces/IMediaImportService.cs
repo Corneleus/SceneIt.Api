@@ -2,7 +2,7 @@ using SceneIt.Api.Dtos;
 
 namespace SceneIt.Api.Interfaces
 {
-  public interface IMovieImportService
+  public interface IMediaImportService
   {
     Task<QueueImportResultDto> QueueAsync(IReadOnlyList<ImportQueueItemDto> items, CancellationToken cancellationToken = default);
     Task<DatasetImportPreviewResultDto> PreviewDatasetAsync(DatasetImportPreviewRequestDto request, CancellationToken cancellationToken = default);

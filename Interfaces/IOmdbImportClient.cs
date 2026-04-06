@@ -4,7 +4,7 @@ namespace SceneIt.Api.Interfaces
 {
   public interface IOmdbImportClient
   {
-    Task<IReadOnlyList<MovieResponseDto>> SearchMoviesAsync(string query, CancellationToken cancellationToken = default);
-    Task<CreateMovieRequestDto?> GetMovieByImdbIdAsync(string imdbId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaItemResponseDto>> SearchAsync(string query, CancellationToken cancellationToken = default);
+    Task<CreateMediaItemRequestDto?> LookupByImdbIdAsync(string imdbId, CancellationToken cancellationToken = default);
   }
 }

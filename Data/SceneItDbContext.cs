@@ -10,9 +10,9 @@ namespace SceneIt.Api.Data
     {
     }
 
-    public DbSet<Movie> Movies => Set<Movie>();
+    public DbSet<MediaItem> MediaItems => Set<MediaItem>();
     public DbSet<User> Users => Set<User>();
-    public DbSet<UserMovie> UserMovies => Set<UserMovie>();
+    public DbSet<UserMediaItem> UserMediaItems => Set<UserMediaItem>();
     public DbSet<ImportQueue> ImportQueueItems => Set<ImportQueue>();
     public DbSet<ImportRun> ImportRuns => Set<ImportRun>();
 
@@ -20,16 +20,16 @@ namespace SceneIt.Api.Data
     {
       base.OnModelCreating(modelBuilder);
 
-      modelBuilder.Entity<Movie>()
-        .HasIndex(movie => movie.ImdbId)
+      modelBuilder.Entity<MediaItem>()
+        .HasIndex(mediaItem => mediaItem.ImdbId)
         .IsUnique();
 
-      modelBuilder.Entity<Movie>()
-        .Property(movie => movie.IsDeleted)
+      modelBuilder.Entity<MediaItem>()
+        .Property(mediaItem => mediaItem.IsDeleted)
         .HasDefaultValue(false);
 
-      modelBuilder.Entity<Movie>()
-        .Property(movie => movie.Released)
+      modelBuilder.Entity<MediaItem>()
+        .Property(mediaItem => mediaItem.Released)
         .HasColumnType("date");
 
       modelBuilder.Entity<ImportQueue>()

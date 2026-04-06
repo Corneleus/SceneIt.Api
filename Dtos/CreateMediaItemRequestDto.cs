@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SceneIt.Api.Dtos
 {
-    public class CreateMovieRequestDto
+    public class CreateMediaItemRequestDto
     {
         [Required]
         public required string Title { get; set; }

@@ -35,8 +35,8 @@ builder.Services.AddHttpClient<IOmdbImportClient, OmdbImportClient>(client =>
     client.BaseAddress = new Uri(baseUrl);
 });
 
-builder.Services.AddScoped<IMovieService, MovieService>();
-builder.Services.AddScoped<IMovieImportService, MovieImportService>();
+builder.Services.AddScoped<IMediaLibraryService, MediaLibraryService>();
+builder.Services.AddScoped<IMediaImportService, MediaImportService>();
 // Temporarily disable the hosted import automation runner because LocalDB isn't supported in this environment.
 
 var app = builder.Build();

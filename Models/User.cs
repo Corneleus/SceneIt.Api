@@ -10,6 +10,6 @@ namespace SceneIt.Api.Models
     [MaxLength(50)]
     public required string Name { get; set; }
 
-    public ICollection<UserMovie> UserMovies { get; set; } = new List<UserMovie>();
+    public ICollection<UserMediaItem> UserMediaItems { get; set; } = new List<UserMediaItem>();
   }
 }

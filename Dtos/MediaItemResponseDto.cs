@@ -1,8 +1,8 @@
 namespace SceneIt.Api.Dtos
 {
-    public class MovieResponseDto
+    public class MediaItemResponseDto
     {
-        public int MovieId { get; set; }
+        public int MediaItemId { get; set; }
         public required string Title { get; set; }
         public string? Year { get; set; }
         public string? Rated { get; set; }

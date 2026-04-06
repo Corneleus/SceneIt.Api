@@ -9,11 +9,11 @@ namespace SceneIt.Api.Controllers
   [Route("api/[controller]")]
   public class ImportsController : ControllerBase
   {
-    private readonly IMovieImportService _movieImportService;
+    private readonly IMediaImportService _mediaImportService;
 
-    public ImportsController(IMovieImportService movieImportService)
+    public ImportsController(IMediaImportService mediaImportService)
     {
-      _movieImportService = movieImportService;
+      _mediaImportService = mediaImportService;
     }
 
     [HttpPost("queue")]
@@ -25,7 +25,7 @@ namespace SceneIt.Api.Controllers
         return ValidationProblem(ModelState);
       }
 
-      var result = await _movieImportService.QueueAsync(request.Items, cancellationToken);
+      var result = await _mediaImportService.QueueAsync(request.Items, cancellationToken);
       return Ok(result);
     }
 
@@ -33,7 +33,7 @@ namespace SceneIt.Api.Controllers
     [ProducesResponseType(typeof(IReadOnlyList<ImportQueueItemResponseDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ImportQueueItemResponseDto>>> GetQueue(CancellationToken cancellationToken)
     {
-      var items = await _movieImportService.GetQueueAsync(cancellationToken);
+      var items = await _mediaImportService.GetQueueAsync(cancellationToken);
       return Ok(items);
     }
 
@@ -49,7 +49,7 @@ namespace SceneIt.Api.Controllers
 
       try
       {
-        var result = await _movieImportService.PreviewDatasetAsync(request, cancellationToken);
+        var result = await _mediaImportService.PreviewDatasetAsync(request, cancellationToken);
         return Ok(result);
       }
       catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or InvalidDataException)
@@ -70,7 +70,7 @@ namespace SceneIt.Api.Controllers
 
       try
       {
-        var result = await _movieImportService.QueueDatasetAsync(request, cancellationToken);
+        var result = await _mediaImportService.QueueDatasetAsync(request, cancellationToken);
         return Ok(result);
       }
       catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or InvalidDataException)
@@ -83,7 +83,7 @@ namespace SceneIt.Api.Controllers
     [ProducesResponseType(typeof(ImportRunResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ImportRunResultDto>> Run([FromBody] ImportRunRequestDto? request, CancellationToken cancellationToken)
     {
-      var result = await _movieImportService.RunBatchAsync(request?.MaxCount ?? 100, cancellationToken);
+      var result = await _mediaImportService.RunBatchAsync(request?.MaxCount ?? 100, cancellationToken);
       return Ok(result);
     }
 
@@ -91,7 +91,7 @@ namespace SceneIt.Api.Controllers
     [ProducesResponseType(typeof(IReadOnlyList<ImportRunResultDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ImportRunResultDto>>> GetRuns(CancellationToken cancellationToken)
     {
-      var runs = await _movieImportService.GetRunsAsync(cancellationToken);
+      var runs = await _mediaImportService.GetRunsAsync(cancellationToken);
       return Ok(runs);
     }
   }

@@ -7,20 +7,20 @@ using SceneIt.Api.Models;
 
 namespace SceneIt.Api.Services
 {
-    public class MovieImportService : IMovieImportService
+    public class MediaImportService : IMediaImportService
     {
         private const int MaxBatchSize = 100;
         private const int DatasetQueueSaveBatchSize = 500;
 
         private readonly SceneItDbContext _context;
         private readonly IOmdbImportClient _omdbImportClient;
-        private readonly IMovieService _movieService;
+        private readonly IMediaLibraryService _mediaLibraryService;
 
-        public MovieImportService(SceneItDbContext context, IOmdbImportClient omdbImportClient, IMovieService movieService)
+        public MediaImportService(SceneItDbContext context, IOmdbImportClient omdbImportClient, IMediaLibraryService mediaLibraryService)
         {
             _context = context;
             _omdbImportClient = omdbImportClient;
-            _movieService = movieService;
+            _mediaLibraryService = mediaLibraryService;
         }
 
         public async Task<QueueImportResultDto> QueueAsync(IReadOnlyList<ImportQueueItemDto> items, CancellationToken cancellationToken = default)
@@ -51,9 +51,9 @@ namespace SceneIt.Api.Services
                     continue;
                 }
 
-                var movieRequest = await _omdbImportClient.GetMovieByImdbIdAsync(item.ImdbId, cancellationToken);
+                var mediaItemRequest = await _omdbImportClient.LookupByImdbIdAsync(item.ImdbId, cancellationToken);
 
-                newItems.Add(CreateQueueItem(item, movieRequest));
+                newItems.Add(CreateQueueItem(item, mediaItemRequest));
             }
 
             if (newItems.Count > 0)
@@ -129,9 +129,9 @@ namespace SceneIt.Api.Services
 
                 try
                 {
-                    var movieRequest = await _omdbImportClient.GetMovieByImdbIdAsync(item.ImdbId, cancellationToken);
+                    var mediaItemRequest = await _omdbImportClient.LookupByImdbIdAsync(item.ImdbId, cancellationToken);
 
-                    if (movieRequest is null)
+                    if (mediaItemRequest is null)
                     {
                         item.Status = ImportQueueStatus.Failed;
                         item.ErrorMessage = "OMDb lookup failed or returned incomplete data.";
@@ -139,10 +139,10 @@ namespace SceneIt.Api.Services
                     }
                     else
                     {
-                        UpdateQueueItemMetadata(item, movieRequest);
-                        item.Title ??= movieRequest.Title;
+                        UpdateQueueItemMetadata(item, mediaItemRequest);
+                        item.Title ??= mediaItemRequest.Title;
 
-                        var result = await _movieService.AddAsync(movieRequest);
+                        var result = await _mediaLibraryService.AddMediaItemAsync(mediaItemRequest);
 
                         if (result.Created)
                         {
@@ -153,21 +153,21 @@ namespace SceneIt.Api.Services
                         else
                         {
                             item.Status = ImportQueueStatus.Duplicate;
-                            item.ErrorMessage = "Movie already exists in the library.";
+                            item.ErrorMessage = "Media item already exists in the library.";
                             run.DuplicateCount++;
                         }
                     }
                 }
                 catch (OmdbException ex)
                 {
-                    DetachTrackedMovies(item.ImdbId);
+                    DetachTrackedMediaItems(item.ImdbId);
                     item.Status = ImportQueueStatus.Failed;
                     item.ErrorMessage = $"OMDb lookup failed: {ex.Message}";
                     run.FailedCount++;
                 }
                 catch (Exception ex)
                 {
-                    DetachTrackedMovies(item.ImdbId);
+                    DetachTrackedMediaItems(item.ImdbId);
                     item.Status = ImportQueueStatus.Failed;
                     item.ErrorMessage = $"Import failed: {ex.Message}";
                     run.FailedCount++;
@@ -189,11 +189,11 @@ namespace SceneIt.Api.Services
             return run.ToResponseDto();
         }
 
-        private void DetachTrackedMovies(string imdbId)
+        private void DetachTrackedMediaItems(string imdbId)
         {
             var normalizedImdbId = imdbId.Trim();
 
-            foreach (var entry in _context.ChangeTracker.Entries<Movie>()
+            foreach (var entry in _context.ChangeTracker.Entries<MediaItem>()
               .Where(entry =>
                 entry.State is EntityState.Added or EntityState.Modified &&
                 string.Equals(entry.Entity.ImdbId, normalizedImdbId, StringComparison.OrdinalIgnoreCase)))
@@ -202,31 +202,31 @@ namespace SceneIt.Api.Services
             }
         }
 
-        private static ImportQueue CreateQueueItem((string ImdbId, string? Title) item, CreateMovieRequestDto? movieRequest)
+        private static ImportQueue CreateQueueItem((string ImdbId, string? Title) item, CreateMediaItemRequestDto? mediaItemRequest)
         {
             var queueItem = new ImportQueue
             {
                 ImdbId = item.ImdbId,
-                Title = movieRequest?.Title ?? item.Title,
-                Year = movieRequest?.Year,
-                Rated = movieRequest?.Rated,
-                Runtime = movieRequest?.Runtime,
-                Genre = movieRequest?.Genre,
-                Director = movieRequest?.Director,
-                Writer = movieRequest?.Writer,
-                Actors = movieRequest?.Actors,
-                Plot = movieRequest?.Plot,
-                Language = movieRequest?.Language,
-                Country = movieRequest?.Country,
-                Awards = movieRequest?.Awards,
-                Poster = movieRequest?.Poster,
-                Metascore = movieRequest?.Metascore,
-                ImdbRating = movieRequest?.ImdbRating,
-                ImdbVotes = movieRequest?.ImdbVotes,
-                Type = movieRequest?.Type,
-                Dvd = movieRequest?.Dvd,
-                BoxOffice = movieRequest?.BoxOffice,
-                Production = movieRequest?.Production,
+                Title = mediaItemRequest?.Title ?? item.Title,
+                Year = mediaItemRequest?.Year,
+                Rated = mediaItemRequest?.Rated,
+                Runtime = mediaItemRequest?.Runtime,
+                Genre = mediaItemRequest?.Genre,
+                Director = mediaItemRequest?.Director,
+                Writer = mediaItemRequest?.Writer,
+                Actors = mediaItemRequest?.Actors,
+                Plot = mediaItemRequest?.Plot,
+                Language = mediaItemRequest?.Language,
+                Country = mediaItemRequest?.Country,
+                Awards = mediaItemRequest?.Awards,
+                Poster = mediaItemRequest?.Poster,
+                Metascore = mediaItemRequest?.Metascore,
+                ImdbRating = mediaItemRequest?.ImdbRating,
+                ImdbVotes = mediaItemRequest?.ImdbVotes,
+                Type = mediaItemRequest?.Type,
+                Dvd = mediaItemRequest?.Dvd,
+                BoxOffice = mediaItemRequest?.BoxOffice,
+                Production = mediaItemRequest?.Production,
                 Status = ImportQueueStatus.Pending
             };
 
@@ -245,28 +245,28 @@ namespace SceneIt.Api.Services
             };
         }
 
-        private static void UpdateQueueItemMetadata(ImportQueue item, CreateMovieRequestDto movieRequest)
+        private static void UpdateQueueItemMetadata(ImportQueue item, CreateMediaItemRequestDto mediaItemRequest)
         {
-            item.Title ??= movieRequest.Title;
-            item.Year = movieRequest.Year;
-            item.Rated = movieRequest.Rated;
-            item.Runtime = movieRequest.Runtime;
-            item.Genre = movieRequest.Genre;
-            item.Director = movieRequest.Director;
-            item.Writer = movieRequest.Writer;
-            item.Actors = movieRequest.Actors;
-            item.Plot = movieRequest.Plot;
-            item.Language = movieRequest.Language;
-            item.Country = movieRequest.Country;
-            item.Awards = movieRequest.Awards;
-            item.Poster = movieRequest.Poster;
-            item.Metascore = movieRequest.Metascore;
-            item.ImdbRating = movieRequest.ImdbRating;
-            item.ImdbVotes = movieRequest.ImdbVotes;
-            item.Type = movieRequest.Type;
-            item.Dvd = movieRequest.Dvd;
-            item.BoxOffice = movieRequest.BoxOffice;
-            item.Production = movieRequest.Production;
+            item.Title ??= mediaItemRequest.Title;
+            item.Year = mediaItemRequest.Year;
+            item.Rated = mediaItemRequest.Rated;
+            item.Runtime = mediaItemRequest.Runtime;
+            item.Genre = mediaItemRequest.Genre;
+            item.Director = mediaItemRequest.Director;
+            item.Writer = mediaItemRequest.Writer;
+            item.Actors = mediaItemRequest.Actors;
+            item.Plot = mediaItemRequest.Plot;
+            item.Language = mediaItemRequest.Language;
+            item.Country = mediaItemRequest.Country;
+            item.Awards = mediaItemRequest.Awards;
+            item.Poster = mediaItemRequest.Poster;
+            item.Metascore = mediaItemRequest.Metascore;
+            item.ImdbRating = mediaItemRequest.ImdbRating;
+            item.ImdbVotes = mediaItemRequest.ImdbVotes;
+            item.Type = mediaItemRequest.Type;
+            item.Dvd = mediaItemRequest.Dvd;
+            item.BoxOffice = mediaItemRequest.BoxOffice;
+            item.Production = mediaItemRequest.Production;
         }
 
         private async Task<T> AnalyzeDatasetAsync<T>(
@@ -304,9 +304,9 @@ namespace SceneIt.Api.Services
               .ToListAsync(cancellationToken))
               .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            var existingMovieIds = request.SkipAlreadyImported
-              ? (await _context.Movies
-                .Select(movie => movie.ImdbId)
+            var existingMediaItemIds = request.SkipAlreadyImported
+              ? (await _context.MediaItems
+                .Select(mediaItem => mediaItem.ImdbId)
                 .ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase)
               : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -337,7 +337,7 @@ namespace SceneIt.Api.Services
                     continue;
                 }
 
-                if (request.SkipAlreadyImported && existingMovieIds.Contains(row.ImdbId))
+                if (request.SkipAlreadyImported && existingMediaItemIds.Contains(row.ImdbId))
                 {
                     alreadyImportedCount++;
                     continue;

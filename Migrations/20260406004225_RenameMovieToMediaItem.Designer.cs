@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SceneIt.Api.Data;
 
@@ -11,9 +12,11 @@ using SceneIt.Api.Data;
 namespace SceneIt.Api.Migrations
 {
     [DbContext(typeof(SceneItDbContext))]
-    partial class SceneItDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406004225_RenameMovieToMediaItem")]
+    partial class RenameMovieToMediaItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
