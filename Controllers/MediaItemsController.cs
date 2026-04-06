@@ -21,18 +21,18 @@ namespace SceneIt.Api.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<MediaItemResponseDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetMediaItems([FromQuery] string? kind)
+        public async Task<IActionResult> GetMediaItems([FromQuery] string? kind, CancellationToken cancellationToken)
         {
-            var mediaItems = await _mediaLibraryService.GetAllMediaItemsAsync(kind);
+            var mediaItems = await _mediaLibraryService.GetAllMediaItemsAsync(kind, cancellationToken);
             return Ok(mediaItems);
         }
 
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(MediaItemResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<MediaItemResponseDto>> GetById(int id)
+        public async Task<ActionResult<MediaItemResponseDto>> GetById(int id, CancellationToken cancellationToken)
         {
-            var mediaItem = await _mediaLibraryService.GetMediaItemByIdAsync(id);
+            var mediaItem = await _mediaLibraryService.GetMediaItemByIdAsync(id, cancellationToken);
 
             if (mediaItem is null)
             {
@@ -90,14 +90,14 @@ namespace SceneIt.Api.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(MediaItemResponseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<MediaItemResponseDto>> Add([FromBody] CreateMediaItemRequestDto mediaItem)
+        public async Task<ActionResult<MediaItemResponseDto>> Add([FromBody] CreateMediaItemRequestDto mediaItem, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return ValidationProblem(ModelState);
             }
 
-            var createdMediaItem = await _mediaLibraryService.AddMediaItemAsync(mediaItem);
+            var createdMediaItem = await _mediaLibraryService.AddMediaItemAsync(mediaItem, cancellationToken);
 
             if (!createdMediaItem.Created)
             {
@@ -124,9 +124,9 @@ namespace SceneIt.Api.Controllers
         [HttpPatch("{id:int}/soft-delete")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> SoftDelete(int id)
+        public async Task<IActionResult> SoftDelete(int id, CancellationToken cancellationToken)
         {
-            var deleted = await _mediaLibraryService.SoftDeleteMediaItemAsync(id);
+            var deleted = await _mediaLibraryService.SoftDeleteMediaItemAsync(id, cancellationToken);
 
             if (!deleted)
             {
@@ -139,9 +139,9 @@ namespace SceneIt.Api.Controllers
         [HttpDelete("{id:int}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> HardDelete(int id)
+        public async Task<IActionResult> HardDelete(int id, CancellationToken cancellationToken)
         {
-            var deleted = await _mediaLibraryService.HardDeleteMediaItemAsync(id);
+            var deleted = await _mediaLibraryService.HardDeleteMediaItemAsync(id, cancellationToken);
 
             if (!deleted)
             {

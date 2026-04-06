@@ -1,23 +1,25 @@
 # SceneIt API
 
-ASP.NET Core backend for SceneIt. The API owns the movie library, OMDb proxy integration, import queue state, and import run history.
+ASP.NET Core backend for SceneIt. The API owns the `MediaItem` library, OMDb proxy integration, import queue state, and import run history.
 
 ## Current Functionality
 
-### Movie library
+### Media library
 
-- `GET /api/Movies` returns only non-deleted movies.
-- `GET /api/Movies/{id}` returns a single non-deleted movie or `404`.
-- `POST /api/Movies/add` creates a movie from a DTO payload.
+- `GET /api/MediaItems` returns only non-deleted media items.
+- `GET /api/MediaItems?kind=movie|series|videoGame` filters library reads by normalized media type.
+- `GET /api/MediaItems/{id}` returns a single non-deleted media item or `404`.
+- `POST /api/MediaItems` creates a media item from a DTO payload.
 - Duplicate adds return `409 Conflict`.
-- Re-adding a soft-deleted movie restores the existing row instead of creating a second record.
-- `PATCH /api/Movies/{id}/soft-delete` marks a movie deleted and removes it from normal reads.
-- `DELETE /api/Movies/{id}` permanently removes the row.
+- Re-adding a soft-deleted media item restores the existing row instead of creating a second record.
+- `PATCH /api/MediaItems/{id}/soft-delete` marks a media item deleted and removes it from normal reads.
+- `DELETE /api/MediaItems/{id}` permanently removes the row.
 
 ### OMDb integration
 
-- `GET /api/Movies/search?query=...` proxies OMDb title search for the frontend.
-- `GET /api/Movies/lookup/{imdbId}` proxies OMDb lookup by IMDb ID.
+- `GET /api/MediaItems/search?query=...` proxies OMDb title search for the frontend.
+- `GET /api/MediaItems/search?query=...&kind=...` filters OMDb search results to a section-specific media kind.
+- `GET /api/MediaItems/lookup/{imdbId}` proxies OMDb lookup by IMDb ID.
 - OMDb responses are normalized before returning or importing:
   - `N/A` values are converted to `null`
   - release dates are parsed into `DateTime?` when possible
@@ -73,7 +75,7 @@ ASP.NET Core backend for SceneIt. The API owns the movie library, OMDb proxy int
 
 Current entity sets:
 
-- `Movies`
+- `MediaItems`
 - `Users`
 - `UserMediaItems`
 - `ImportQueueItems`
@@ -84,14 +86,18 @@ Current migrations in the repo:
 - `20260402204927_InitialCreate`
 - `20260403034109_AddImportQueue`
 - `20260404065811_AddImportQueueMetadata`
-- `20260404120000_ImportQueueDetails`
+- `20260406004225_RenameMovieToMediaItem`
 
 Important model constraints:
 
-- `Movies.ImdbId` is unique.
+- `MediaItems.ImdbId` is unique.
 - `ImportQueueItems.ImdbId` is unique.
-- `Movies.Released` is stored as SQL `date`.
+- `MediaItems.Released` is stored as SQL `date`.
 - `ImportQueueItems.Status` is stored as a string conversion of the enum.
+
+Migration note:
+
+- `20260406004225_RenameMovieToMediaItem` is a rename-based migration that preserves existing library data by renaming tables, keys, and foreign-key columns instead of dropping and recreating them.
 
 ## Configuration
 
@@ -107,6 +113,12 @@ Apply migrations:
 
 ```bash
 dotnet ef database update
+```
+
+Explicit PowerShell form:
+
+```powershell
+dotnet ef database update --project .\SceneIt.Api.csproj --startup-project .\SceneIt.Api.csproj --context SceneItDbContext
 ```
 
 ### OMDb
@@ -137,10 +149,12 @@ The development CORS policy currently allows:
 
 ## Running Locally
 
-Restore and build:
+Restore, build, and test:
 
 ```bash
+dotnet restore
 dotnet build -c Release
+dotnet test -c Release ..\SceneIt.Api.Tests\SceneIt.Api.Tests.csproj
 ```
 
 Run the API:
@@ -158,15 +172,19 @@ Swagger is enabled in Development at `/swagger`.
 
 ## API Surface
 
-### Movies
+### MediaItems
 
-- `GET /api/Movies`
-- `GET /api/Movies/{id}`
-- `POST /api/Movies/add`
-- `PATCH /api/Movies/{id}/soft-delete`
-- `DELETE /api/Movies/{id}`
-- `GET /api/Movies/search?query=...`
-- `GET /api/Movies/lookup/{imdbId}`
+- `GET /api/MediaItems`
+- `GET /api/MediaItems?kind=movie`
+- `GET /api/MediaItems?kind=series`
+- `GET /api/MediaItems?kind=videoGame`
+- `GET /api/MediaItems/{id}`
+- `POST /api/MediaItems`
+- `PATCH /api/MediaItems/{id}/soft-delete`
+- `DELETE /api/MediaItems/{id}`
+- `GET /api/MediaItems/search?query=...`
+- `GET /api/MediaItems/search?query=...&kind=series`
+- `GET /api/MediaItems/lookup/{imdbId}`
 
 ### Imports
 
@@ -183,17 +201,21 @@ Run tests:
 dotnet test -c Release
 ```
 
-The committed backend tests currently cover 18 test cases across:
+The committed backend tests currently cover 31 test cases across:
 
-- create, duplicate, restore, soft-delete, and hard-delete movie service behavior
+- create, duplicate, restore, soft-delete, and hard-delete media-library service behavior
 - queue deduplication and duplicate skipping
 - successful import, duplicate import, OMDb null lookup failure, and add failure handling
 - run-limit capping at 100 items
 - imports controller queue and run responses
-- movies controller conflict, delete, search-failure, and lookup-failure responses
+- media-items controller conflict, delete, search-failure, and lookup-failure responses
+- media-kind matching for legacy and OMDb type values
+
+Current backend test count: 31 passing tests.
 
 ## Notes For The Frontend
 
 - The Angular UI expects to call this API at `https://localhost:44383/api` in development.
 - Swagger and the API can run at the same time as the Angular dev server.
 - The current API does not expose endpoints for saving automation settings; only queueing, running, and reading import state are supported.
+- Existing library rows may still contain older type values such as `series` or `game`; `MediaKindMatcher` normalizes these alongside OMDb/IMDb values like `tvSeries` and `videoGame`.

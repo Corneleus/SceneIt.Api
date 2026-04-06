@@ -33,6 +33,7 @@ builder.Services.AddHttpClient<IOmdbImportClient, OmdbImportClient>(client =>
 {
     var baseUrl = builder.Configuration["Omdb:BaseUrl"] ?? "https://www.omdbapi.com/";
     client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
 });
 
 builder.Services.AddScoped<IMediaLibraryService, MediaLibraryService>();

@@ -14,31 +14,33 @@ namespace SceneIt.Api.Services
       Context = context;
     }
 
-    public async Task<IReadOnlyList<MediaItemResponseDto>> GetAllMediaItemsAsync(string? kind = null)
+    public async Task<IReadOnlyList<MediaItemResponseDto>> GetAllMediaItemsAsync(string? kind = null, CancellationToken cancellationToken = default)
     {
-      var mediaItems = await Context.MediaItems
-        .Where(mediaItem => !mediaItem.IsDeleted)
-        .ToListAsync();
+      var mediaItemsQuery = ApplyKindFilter(
+        Context.MediaItems
+          .AsNoTracking()
+          .Where(mediaItem => !mediaItem.IsDeleted),
+        kind);
 
-      return mediaItems
-        .Where(mediaItem => MediaKindMatcher.Matches(mediaItem.Type, kind))
+      return await mediaItemsQuery
         .Select(mediaItem => mediaItem.ToMediaItemResponseDto())
-        .ToList();
+        .ToListAsync(cancellationToken);
     }
 
-    public async Task<MediaItemResponseDto?> GetMediaItemByIdAsync(int id)
+    public async Task<MediaItemResponseDto?> GetMediaItemByIdAsync(int id, CancellationToken cancellationToken = default)
     {
       var mediaItem = await Context.MediaItems
-        .FirstOrDefaultAsync(entity => entity.MediaItemId == id && !entity.IsDeleted);
+        .AsNoTracking()
+        .FirstOrDefaultAsync(entity => entity.MediaItemId == id && !entity.IsDeleted, cancellationToken);
 
       return mediaItem?.ToMediaItemResponseDto();
     }
 
-    public async Task<CreateMediaItemResult> AddMediaItemAsync(CreateMediaItemRequestDto mediaItem)
+    public async Task<CreateMediaItemResult> AddMediaItemAsync(CreateMediaItemRequestDto mediaItem, CancellationToken cancellationToken = default)
     {
       var trimmedImdbId = mediaItem.ImdbId.Trim();
       var existingMediaItem = await Context.MediaItems
-        .FirstOrDefaultAsync(entity => entity.ImdbId == trimmedImdbId);
+        .FirstOrDefaultAsync(entity => entity.ImdbId == trimmedImdbId, cancellationToken);
 
       if (existingMediaItem is not null)
       {
@@ -48,7 +50,7 @@ namespace SceneIt.Api.Services
           existingMediaItem.IsDeleted = false;
           existingMediaItem.DeletedAtUtc = null;
 
-          await Context.SaveChangesAsync();
+          await Context.SaveChangesAsync(cancellationToken);
 
           return new CreateMediaItemResult
           {
@@ -67,7 +69,7 @@ namespace SceneIt.Api.Services
       var entity = mediaItem.ToEntity();
 
       Context.MediaItems.Add(entity);
-      await Context.SaveChangesAsync();
+      await Context.SaveChangesAsync(cancellationToken);
 
       return new CreateMediaItemResult
       {
@@ -76,9 +78,9 @@ namespace SceneIt.Api.Services
       };
     }
 
-    public async Task<bool> SoftDeleteMediaItemAsync(int id)
+    public async Task<bool> SoftDeleteMediaItemAsync(int id, CancellationToken cancellationToken = default)
     {
-      var mediaItem = await Context.MediaItems.FirstOrDefaultAsync(entity => entity.MediaItemId == id);
+      var mediaItem = await Context.MediaItems.FirstOrDefaultAsync(entity => entity.MediaItemId == id, cancellationToken);
 
       if (mediaItem is null || mediaItem.IsDeleted)
       {
@@ -88,14 +90,14 @@ namespace SceneIt.Api.Services
       mediaItem.IsDeleted = true;
       mediaItem.DeletedAtUtc = DateTime.UtcNow;
 
-      await Context.SaveChangesAsync();
+      await Context.SaveChangesAsync(cancellationToken);
 
       return true;
     }
 
-    public async Task<bool> HardDeleteMediaItemAsync(int id)
+    public async Task<bool> HardDeleteMediaItemAsync(int id, CancellationToken cancellationToken = default)
     {
-      var mediaItem = await Context.MediaItems.FirstOrDefaultAsync(entity => entity.MediaItemId == id);
+      var mediaItem = await Context.MediaItems.FirstOrDefaultAsync(entity => entity.MediaItemId == id, cancellationToken);
 
       if (mediaItem is null)
       {
@@ -103,9 +105,30 @@ namespace SceneIt.Api.Services
       }
 
       Context.MediaItems.Remove(mediaItem);
-      await Context.SaveChangesAsync();
+      await Context.SaveChangesAsync(cancellationToken);
 
       return true;
+    }
+
+    private static IQueryable<Models.MediaItem> ApplyKindFilter(IQueryable<Models.MediaItem> query, string? kind)
+    {
+      var normalizedTypeTokens = MediaKindMatcher.GetTypeTokens(kind);
+
+      if (normalizedTypeTokens.Count == 0)
+      {
+        return string.IsNullOrWhiteSpace(kind)
+          ? query
+          : query.Where(_ => false);
+      }
+
+      return query.Where(mediaItem =>
+        mediaItem.Type != null &&
+        normalizedTypeTokens.Contains(
+          mediaItem.Type
+            .Trim()
+            .Replace(" ", string.Empty)
+            .Replace("-", string.Empty)
+            .ToLower()));
     }
   }
 }
